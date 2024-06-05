@@ -15,8 +15,8 @@
 #define PIXELCOUNT 90
 
 // Replace with your network credentials
-const char* ssid = "74DA38FAB07B";
-const char* password = "SN19414118";
+const char* ssid = "";
+const char* password = "";
 
 // Set web server port number to 80
 WiFiServer server(80);
