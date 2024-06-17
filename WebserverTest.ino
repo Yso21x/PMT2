@@ -6,6 +6,7 @@
 // Load Wi-Fi library
 #include <WiFi.h>
 #include <Adafruit_NeoPixel.h>
+#include <arduinoFFT.h>
 
 #include <driver/i2s.h>
 #define I2S_WS 15
@@ -15,17 +16,34 @@
 #define bufferLen 128
 
 #define PIN 16
-#define PIXELCOUNT 50
+#define PIXELCOUNT 105
+#define PIXELCOUNT2 210
 #define MAX_INPUT 400
 // Replace with your network credentials
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Shrek (2)";
+const char* password = "12345677";
 
 int r=255;
 int g=255;
 int b=255;
 uint8_t reds[PIXELCOUNT] = {0, 20, 25, 30, 35, 40, 50, 60, 70, 70, 80, 80, 90, 110, 130, 150, 170, 190, 200, 220, 240, 250, 255, 255, 255, 255 };
 int16_t sBuffer[bufferLen];
+//frequencyanalyzer
+int f=0;
+const int BLOCK_SIZE = 512;
+int hoehe=0;
+
+const double signalFrequency = 1000;
+const double samplingFrequency = 10000;
+const uint8_t amplitude = 150;
+
+double vReal[BLOCK_SIZE];
+double vImag[BLOCK_SIZE];
+int32_t samples[BLOCK_SIZE];
+
+String labels[] = {"125", "250", "500", "1K", "2K", "4K", "8K", "16K"};
+
+arduinoFFT FFT = arduinoFFT(); /* Create FFT object */
 // Set web server port number to 80
 WiFiServer server(80);
 
@@ -51,7 +69,7 @@ const long timeoutTime = 2000;
 void setup() {
   strip.begin();
   strip.setBrightness(50);  
-              for (int i=0; i<PIXELCOUNT; i++){
+              for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, g, r, b); 
             }
             strip.show();
@@ -79,19 +97,19 @@ void setup() {
 
 void update(){
   if(LEDState=="stable"){
-  for (int i=0; i<PIXELCOUNT; i++){
+  for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, g,r,b); 
             }
             strip.show();
     if(g==0&&b==0&&r==0){
-        for (int i=0; i<PIXELCOUNT; i++){
+        for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, 30,30,30); 
             }
             strip.show();
     }
   }else{
       LEDState="off";
-              for (int i=0; i<PIXELCOUNT; i++){
+              for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, 20,20,20); 
             }
       strip.show();
@@ -100,7 +118,7 @@ void update(){
 
 void disco(){
   for (int j=0; j<=10; j++){
-  for (int i=0; i<PIXELCOUNT; i++){
+  for (int i=0; i<PIXELCOUNT2; i++){
     strip.setPixelColor(i, random(0, 255),random(0, 255),random(0, 255)); 
   }
   strip.show();
@@ -122,11 +140,17 @@ void chase(){
         }else {
           strip.setPixelColor(PIXELCOUNT-i, 0, 0, 0);
         }
+      strip.setPixelColor(210-i, g, r, b);
+        if(i<=205){
+          strip.setPixelColor(i+5, 0, 0, 0);
+        }else {
+          strip.setPixelColor(PIXELCOUNT-i, 0, 0, 0);
+        } 
       strip.show();
       delay(30);
       }
   }
-  for (int i=0; i<PIXELCOUNT; i++){
+  for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, 20,20,20); 
             }
       strip.show();
@@ -139,8 +163,8 @@ void chaseinfinite(){
 }
 
 void funkeln(){
-  for (int i=0; i<350; i++){
-    strip.setPixelColor(random(0,80), g, r, b);
+  for (int i=0; i<950; i++){
+    strip.setPixelColor(random(0,210), g, r, b);
     strip.show();
     delay(5);
   }
@@ -170,10 +194,80 @@ void mic(){
     }
   }
 
-  strip.fill(0x000000, 0, PIXELCOUNT);
+  strip.fill(0x000000, 0, PIXELCOUNT2);
   strip.show();
   }
 }
+//show
+void show(int a){
+  for (int i=0; i<a; i++){
+    strip.setPixelColor(i, g, r, b);
+  }
+}
+/*
+void mic1(){
+  int num_bytes_read = i2s_read_bytes(I2S_PORT, 
+                                      (char *)samples, 
+                                      BLOCK_SIZE,     // the doc says bytes, but its elements.
+                                      portMAX_DELAY); // no timeout
+
+  for (uint16_t i = 0; i < BLOCK_SIZE; i++) {
+    vReal[i] = samples[i] << 8;
+    vImag[i] = 0.0; //Imaginary part must be zeroed in case of looping to avoid wrong calculations and overflows
+  }
+
+  FFT.Windowing(vReal, BLOCK_SIZE, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+  FFT.Compute(vReal, vImag, BLOCK_SIZE, FFT_FORWARD);
+  FFT.ComplexToMagnitude(vReal, vImag, BLOCK_SIZE);
+  
+  for (int i = 2; i < (BLOCK_SIZE/2); i++){ // Don't use sample 0 and only first SAMPLES/2 are usable. Each array eleement represents a frequency and its value the amplitude.
+    if (vReal[i] > 2000) { // Add a crude noise filter, 10 x amplitude or more
+      if (i<=2 )             Serial.println(125); // 125Hz
+      if (i >3   && i<=5 )   Serial.println(250); // 250Hz
+      if (i >5   && i<=7 )   Serial.println(500); // 500Hz
+      if (i >7   && i<=15 )  Serial.println(1000); // 1000Hz
+      if (i >15  && i<=30 )  Serial.println(2000); // 2000Hz
+      if (i >30  && i<=53 )  Serial.println(4000); // 4000Hz
+      if (i >53  && i<=200 ) Serial.println(8000); // 8000Hz
+      if (i >200           ) Serial.println(16000); // 16000Hz
+    }
+
+    //for (byte band = 0; band <= 6; band++) display.drawHorizontalLine(18*band,64-peak[band],14);
+  }
+}
+*/
+
+void filter(){
+  size_t bytesIn = 0;
+  esp_err_t result = i2s_read(I2S_PORT, &sBuffer, bufferLen, &bytesIn, portMAX_DELAY);
+  for (uint16_t i = 0; i < BLOCK_SIZE; i++) {
+        vReal[i] = samples[i] << 8;
+        vImag[i] = 0.0; //Imaginary part must be zeroed in case of looping to avoid wrong calculations and overflows
+      }
+  if (result == ESP_OK) {
+    int samples_read = bytesIn / 8;
+    if (samples_read > 0) {
+    FFT.Windowing(vReal, BLOCK_SIZE, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+    FFT.Compute(vReal, vImag, BLOCK_SIZE, FFT_FORWARD);
+    FFT.ComplexToMagnitude(vReal, vImag, BLOCK_SIZE);
+    for (int i = 2; i < (BLOCK_SIZE/2); i++){ // Don't use sample 0 and only first SAMPLES/2 are usable. Each array eleement represents a frequency and its value the amplitude.
+      if (vReal[i] > 2000) { // Add a crude noise filter, 10 x amplitude or more
+        if (i<=2 && i<=7 && hoehe==1){
+          show((int)(vReal[i]/amplitude)); // 125-500Hz
+        }     
+        if (i >7   && i<=30 && hoehe==2)  {
+          show((int)(vReal[i]/amplitude)); // 1000-2000Hz
+        }
+        if (i >30  && i<=53 && hoehe==3){
+          show((int)(vReal[i]/amplitude)); // 4000-16000Hz
+        }
+     }
+    }
+    }
+    //for (byte band = 0; band <= 6; band++) display.drawHorizontalLine(18*band,64-peak[band],14);
+  }
+}
+
 
 void i2s_install() {
   const i2s_config_t i2s_config = {
@@ -201,6 +295,8 @@ void i2s_setpin() {
 
   i2s_set_pin(I2S_PORT, &pin_config);
 }
+
+
 
 void loop(){
   WiFiClient client = server.available();   // Listen for incoming clients
@@ -297,14 +393,14 @@ void loop(){
             if (header.indexOf("GET /LED/on") >= 0) {
               Serial.println("LED stable");
               LEDState="stable";
-            for (int i=0; i<PIXELCOUNT; i++){
+            for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, g,r,b); 
             }
             strip.show();
             } else if (header.indexOf("GET /LED/off") >= 0) {
               Serial.println("LED off");
               LEDState="off";
-              for (int i=0; i<PIXELCOUNT; i++){
+              for (int i=0; i<PIXELCOUNT2; i++){
             strip.setPixelColor(i, 20,20,20); 
             }
             strip.show();
@@ -343,6 +439,46 @@ void loop(){
               mic();
             } else if (header.indexOf("GET /Mic/off") >= 0) {
               Serial.println("Mic off");
+              update();
+            }
+            //filter
+            if (header.indexOf("GET /Filter/on") >= 0) {
+              Serial.println("Filter on");
+              LEDState="Filter on";
+              filter();
+            } else if (header.indexOf("GET /Filter/off") >= 0) {
+              Serial.println("Filter off");
+              update();
+            }
+            //Hoehen
+            //h1
+            if (header.indexOf("GET /h1/on") >= 0) {
+              Serial.println("Tieffrequenz on");
+              hoehe=1;
+              filter();
+            } else if (header.indexOf("GET /h1/off") >= 0) {
+              Serial.println("Filter off");
+              hoehe=0;
+              update();
+            }
+            //h2
+            if (header.indexOf("GET /h2/on") >= 0) {
+              Serial.println("Mittelfrequenz on");
+              hoehe=2;
+              filter();
+            } else if (header.indexOf("GET /h2/off") >= 0) {
+              Serial.println("Mittelfrequenz off");
+              hoehe=0;
+              update();
+            }
+            //h3
+            if (header.indexOf("GET /h3/on") >= 0) {
+              Serial.println("Hochfrequenz on");
+              hoehe=3;
+              filter();
+            } else if (header.indexOf("GET /h3/off") >= 0) {
+              Serial.println("Hochfrequenz off");
+              hoehe=0;
               update();
             }
             //DiscoInfinite
@@ -385,6 +521,14 @@ void loop(){
             client.println(".buttondisco {background-color: #FF34B3; border: none; color: white; padding: 16px 40px;}</style></head>"),
             client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
             client.println(".buttonmic {background-color: #66CDAA; border: none; color: white; padding: 16px 40px;}</style></head>"),
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".buttonf {background-color: #66CDAA; border: none; color: white; padding: 16px 40px;}</style></head>"),
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".buttonh1 {background-color: #66CDAA; border: none; color: white; padding: 16px 40px;}</style></head>"),
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".buttonh2 {background-color: #66CDAA; border: none; color: white; padding: 16px 40px;}</style></head>"),
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".buttonh3 {background-color: #66CDAA; border: none; color: white; padding: 16px 40px;}</style></head>"),
             client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
             client.println(".buttonfunkeln {background-color: #828282; border: none; color: white; padding: 16px 40px;}</style></head>"),
             client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
@@ -453,6 +597,39 @@ void loop(){
               client.println("<p><a href=\"/Mic/off\"><button class=\"buttonmic button2\">OFF</button></a></p>");
             } else {
               client.println("<p><a href=\"/Mic/on\"><button class=\"buttonmic\">ON</button></a></p>");
+            } 
+            client.println("</body></html>");
+            //filter
+            client.println("<p>Filter</p>");
+            if (LEDState=="Filter on") {
+              client.println("<p><a href=\"/Filter/off\"><button class=\"buttonf button2\">OFF</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/Filter/on\"><button class=\"buttonf\">ON</button></a></p>");
+            } 
+            client.println("</body></html>");
+            //hoehen
+            //h2
+            client.println("<p>Tieffrequenz</p>");
+            if (LEDState=="Tieffrequenz on") {
+              client.println("<p><a href=\"/h1/off\"><button class=\"buttonh1 button2\">OFF</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/h1/on\"><button class=\"buttonh1\">ON</button></a></p>");
+            } 
+            client.println("</body></html>");
+            //h2
+            client.println("<p>Mittelfrequenz</p>");
+            if (LEDState=="Mittelfrequenz on") {
+              client.println("<p><a href=\"/h2/off\"><button class=\"buttonh2 button2\">OFF</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/h2/on\"><button class=\"buttonh2\">ON</button></a></p>");
+            } 
+            client.println("</body></html>");
+            //h3
+            client.println("<p>Hochfrequenz</p>");
+            if (LEDState=="Hochfrequenz on") {
+              client.println("<p><a href=\"/h3/off\"><button class=\"buttonh3 button2\">OFF</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/h3/on\"><button class=\"buttonh3\">ON</button></a></p>");
             } 
             client.println("</body></html>");
             //funkeln
