@@ -1,7 +1,4 @@
-/*********
-  Rui Santos
-  Complete project details at http://randomnerdtutorials.com  
-*********/
+
 
 // Load Wi-Fi library
 #include <WiFi.h>
@@ -20,8 +17,8 @@
 #define PIXELCOUNT2 210
 #define MAX_INPUT 400
 // Replace with your network credentials
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Shrek (2)";
+const char* password = "12345677";
 
 int r=255;
 int g=255;
@@ -32,6 +29,7 @@ int16_t sBuffer[bufferLen];
 int f=0;
 const int BLOCK_SIZE = 512;
 int hoehe=0;
+int bands[3] = {0, 0, 0};
 
 const double signalFrequency = 1000;
 const double samplingFrequency = 10000;
@@ -200,9 +198,11 @@ void mic(){
 }
 //show
 void show(int a){
-  for (int i=0; i<a; i++){
+  for (int i=0; i<(a/2000000); i++){
     strip.setPixelColor(i, g, r, b);
   }
+  strip.show();
+  delay(10);
 }
 /*
 void mic1(){
@@ -250,21 +250,26 @@ void filter(){
     FFT.Windowing(vReal, BLOCK_SIZE, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
     FFT.Compute(vReal, vImag, BLOCK_SIZE, FFT_FORWARD);
     FFT.ComplexToMagnitude(vReal, vImag, BLOCK_SIZE);
+    for (int i = 0; i < 3; i++) {
+    bands[i] = 0;
+  }
     for (int i = 2; i < (BLOCK_SIZE/2); i++){ // Don't use sample 0 and only first SAMPLES/2 are usable. Each array eleement represents a frequency and its value the amplitude.
       if (vReal[i] > 2000) { // Add a crude noise filter, 10 x amplitude or more
         if (i<=2 && i<=7 && hoehe==1){
-          show((int)(vReal[i]/amplitude)); // 125-500Hz
+          bands[0] = max(bands[0], (int)(vReal[i]/amplitude));
+          show(bands[0]); // 125-500Hz
         }     
         if (i >7   && i<=30 && hoehe==2)  {
-          show((int)(vReal[i]/amplitude)); // 1000-2000Hz
+          bands[1] = max(bands[1], (int)(vReal[i]/amplitude));
+          show(bands[1]); // 1000-2000Hz
         }
         if (i >30  && i<=53 && hoehe==3){
-          show((int)(vReal[i]/amplitude)); // 4000-16000Hz
+          bands[2] = max(bands[2], (int)(vReal[i]/amplitude));
+          show(bands[2]); // 4000-16000Hz
         }
      }
     }
     }
-    //for (byte band = 0; band <= 6; band++) display.drawHorizontalLine(18*band,64-peak[band],14);
   }
 }
 
