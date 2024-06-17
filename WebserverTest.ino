@@ -20,8 +20,8 @@
 #define PIXELCOUNT2 210
 #define MAX_INPUT 400
 // Replace with your network credentials
-const char* ssid = "Shrek (2)";
-const char* password = "12345677";
+const char* ssid = "";
+const char* password = "";
 
 int r=255;
 int g=255;
