@@ -23,7 +23,7 @@ const char* password = "";
 int r=255;
 int g=255;
 int b=255;
-uint8_t reds[PIXELCOUNT] = {0, 20, 25, 30, 35, 40, 50, 60, 70, 70, 80, 80, 90, 110, 130, 150, 170, 190, 200, 220, 240, 250, 255, 255, 255, 255 };
+uint8_t reds[PIXELCOUNT2] = {0, 20, 25, 30, 35, 40, 50, 60, 70, 70, 80, 80, 90, 110, 130, 150, 170, 190, 200, 220, 240, 250, 255, 255, 255, 255 };
 int16_t sBuffer[bufferLen];
 //frequencyanalyzer
 int f=0;
@@ -49,7 +49,7 @@ WiFiServer server(80);
 String header;
 
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXELCOUNT, PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXELCOUNT2, PIN, NEO_RGB + NEO_KHZ800);
 
 
 // Auxiliar variables to store the current output state
